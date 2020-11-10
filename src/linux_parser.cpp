@@ -2,6 +2,9 @@
 #include <unistd.h>
 #include <string>
 #include <vector>
+#include <iostream>
+#include <thread>
+#include <chrono>
 
 #include "linux_parser.h"
 
@@ -35,13 +38,13 @@ string LinuxParser::OperatingSystem() {
 
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::Kernel() {
-  string os, kernel;
+  string os, version, kernel;
   string line;
   std::ifstream stream(kProcDirectory + kVersionFilename);
   if (stream.is_open()) {
     std::getline(stream, line);
     std::istringstream linestream(line);
-    linestream >> os >> kernel;
+    linestream >> os >> version >> kernel;
   }
   return kernel;
 }
@@ -66,6 +69,116 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
+std::map<std::string,std::vector<long>> getAllUtilization() {
+  std::map<std::string,std::vector<long>> allUtes;
+  std::regex e ("(cpu)(.*)");
+
+  std::ifstream cpustream(LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
+  std::string cpu,user,nice,system,idle,iowait,irq,softirq,steal,guest,guestnice;
+  long usertime,nicetime,idlealltime,systemalltime,virtualltime,totaltime;
+  if (cpustream.is_open()) {
+    //long prevIdle,prevNonIdle,prevTotalTime;
+    
+    while(cpustream >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guestnice) {
+      if(std::regex_match(cpu,e)) {
+        // Get the intial times and calcuate the total time
+       // std::cout << "Line: " << cpu << std::endl;
+        usertime = stol(user) - stol(guest);
+        nicetime = stol(nice) - stol(guestnice);
+        idlealltime = stol(idle) + stol(iowait);
+        systemalltime = stol(system) + stol(irq) + stol(softirq);
+        virtualltime = stol(guest) + stol(guestnice);
+        totaltime = usertime + nicetime + systemalltime + idlealltime + stol(steal) + virtualltime;
+
+        allUtes[cpu] = {totaltime,idlealltime};
+        
+      }
+    }
+    cpustream.close();
+  }
+
+  return allUtes;
+}
+
+
+// Get the processor information at time = 0.0s and time += 100ms. Use both times to calculate the 
+// CPU utilization for each processing core
+
+vector<string> LinuxParser::CpuUtilization() { 
+  std::map<std::string,std::vector<long>> initialTimes, laterTimes;
+
+  initialTimes = getAllUtilization();
+  // sleep for 200 milliseconds
+  std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  laterTimes = getAllUtilization();
+
+  std::vector<std::string> percentages;
+  std::vector<long> initVec,laterVec;
+  std::string thisCpu;
+  
+  std::map<std::string,std::vector<long>>::iterator it;
+
+  for(it = initialTimes.begin();it != initialTimes.end(); it++) {
+    
+    thisCpu = it->first;
+    initVec = it->second;
+
+    laterVec = laterTimes[thisCpu];
+    long totald = laterVec[0] - initVec[0];
+    long idled = laterVec[1] - initVec[1];
+
+    std::string percent = std::to_string((totald - idled)/totald);
+    percentages.push_back(percent);
+  }
+
+  
+ 
+  return percentages;
+  //return kernel;
+
+ }
+
+
+/*  // Get the processor information at time = 0.0s and time += 100ms. Use both times to calculate the 
+// CPU utilization for each processing core
+
+vector<string> LinuxParser::CpuUtilization() { 
+  std::map<std::string,std::vector<long>> initialTimes, laterTimes;
+
+  std::regex e ("(cpu)(.*)");
+  std::ifstream stream(kProcDirectory + kStatFilename);
+  std::string cpu,user,nice,system,idle,iowait,irq,softirq,steal,guest,guestnice;
+  long usertime,nicetime,idlealltime,systemalltime,virtualltime,totaltime;
+
+  if (stream.is_open()) {
+    long prevIdle,prevNonIdle,prevTotalTime;
+    
+    while(stream >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guestnice) {
+      if(std::regex_match(cpu,e)) {
+        // Get the intial times and calcuate the total time
+        std::cout << "Line: " << cpu << std::endl;
+        usertime = stol(user) - stol(guest);
+        nicetime = stol(nice) - stol(guestnice);
+        idlealltime = stol(idle) + stol(iowait);
+        systemalltime = stol(system) + stol(irq) + stol(softirq);
+        virtualltime = stol(guest) + stol(guestnice);
+        totaltime = usertime + nicetime + systemalltime + idlealltime + stol(steal) + virtualltime;
+
+        initialTimes[cpu] = {totaltime,idlealltime};
+        
+      }
+    }
+    stream.close();
+    // sleep for 200 milliseconds
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+  }
+  std::cout << " End of cpus" << std::endl;
+  std::vector<std::string> a;
+  return a;
+  //return kernel;
+
+ } */
 // TODO: Read and return the system memory utilization
 float LinuxParser::MemoryUtilization() { return 0.0; }
 
@@ -85,8 +198,7 @@ long LinuxParser::ActiveJiffies() { return 0; }
 // TODO: Read and return the number of idle jiffies for the system
 long LinuxParser::IdleJiffies() { return 0; }
 
-// TODO: Read and return CPU utilization
-vector<string> LinuxParser::CpuUtilization() { return {}; }
+
 
 // TODO: Read and return the total number of processes
 int LinuxParser::TotalProcesses() { return 0; }
@@ -113,3 +225,4 @@ string LinuxParser::User(int pid[[maybe_unused]]) { return string(); }
 // TODO: Read and return the uptime of a process
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
+
