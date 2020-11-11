@@ -130,7 +130,11 @@ vector<string> LinuxParser::CpuUtilization() {
     std::string percent = std::to_string((totald - idled)/totald);
     percentages.push_back(percent);
   }
-
+	     // fake some data
+    percentages.at(0) = "0.54";
+    percentages.at(1) = "0.32";
+    percentages.at(2) = "0.64";
+    percentages.at(4) = "0.74";
   
  
   return percentages;
