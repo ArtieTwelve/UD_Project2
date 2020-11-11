@@ -184,7 +184,23 @@ vector<string> LinuxParser::CpuUtilization() {
 
  } */
 // TODO: Read and return the system memory utilization
-float LinuxParser::MemoryUtilization() { return 0.0; }
+float LinuxParser::MemoryUtilization() { 
+  std::string line,line2,memTotalTag,memTotal,memFreeTag,memFree;
+  float memPercent;
+  std::ifstream memstream(LinuxParser::kProcDirectory + LinuxParser::kMeminfoFilename);
+
+  if (memstream.is_open()) {
+    std::getline(memstream, line);
+    std::istringstream linestream(line);
+    linestream >> memTotalTag >> memTotal;
+    std::getline(memstream, line2);
+    std::istringstream linestream2(line2);
+    linestream2 >> memFreeTag >> memFree; 
+
+    memPercent = (stof(memTotal) - stof(memFree))/stof(memTotal);
+  }
+return memPercent; 
+}
 
 // TODO: Read and return the system uptime
 long LinuxParser::UpTime() { return 0; }

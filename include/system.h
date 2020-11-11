@@ -3,9 +3,12 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "process.h"
 #include "processor.h"
+
+
 
 class System {
  public:
@@ -18,10 +21,16 @@ class System {
   std::string Kernel();               // TODO: See src/system.cpp
   std::string OperatingSystem();      // TODO: See src/system.cpp
 
+  // Utility
+  Process getProcInfo(int pid);
+  void createUserMap();
+  std::string getUserName(std::string uid);
+
   // TODO: Define any necessary private members
  private:
   Processor cpu_ = {};
   std::vector<Process> processes_ = {};
+  std::map<std::string,std::string> userMap;
 };
 
 #endif
