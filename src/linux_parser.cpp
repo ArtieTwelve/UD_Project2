@@ -13,6 +13,7 @@ using std::string;
 using std::to_string;
 using std::vector;
 
+
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::OperatingSystem() {
   string line;
@@ -68,121 +69,104 @@ vector<int> LinuxParser::Pids() {
   closedir(directory);
   return pids;
 }
+// Convenience method to get the cpu utilization raw strings. If the regEx only matches ("cpu "), then only the values from the first cpu line of /proc/stat will be returned.
+// If it matches ("cpu)(.*) ") then the vector will hold all the values of cpu0 - cpuN. This way, it can be used for both the total system utilization and for each CPU.
 
-std::map<std::string,std::vector<long>> getAllUtilization() {
-  std::map<std::string,std::vector<long>> allUtes;
-  std::regex e ("(cpu)(.*)");
-
+std::vector<std::vector<std::string>> getRawUtilization(std::regex regEx) {
+  //std::map<std::string,std::vector<long>> allUtes;
+ // std::regex e ("(cpu)(.*)");
+  std::vector<std::vector<std::string>> utilization;
   std::ifstream cpustream(LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
   std::string cpu,user,nice,system,idle,iowait,irq,softirq,steal,guest,guestnice;
-  long usertime,nicetime,idlealltime,systemalltime,virtualltime,totaltime;
+ 
   if (cpustream.is_open()) {
     //long prevIdle,prevNonIdle,prevTotalTime;
     
     while(cpustream >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guestnice) {
-      if(std::regex_match(cpu,e)) {
-        // Get the intial times and calcuate the total time
-       // std::cout << "Line: " << cpu << std::endl;
-        usertime = stol(user) - stol(guest);
-        nicetime = stol(nice) - stol(guestnice);
-        idlealltime = stol(idle) + stol(iowait);
-        systemalltime = stol(system) + stol(irq) + stol(softirq);
-        virtualltime = stol(guest) + stol(guestnice);
-        totaltime = usertime + nicetime + systemalltime + idlealltime + stol(steal) + virtualltime;
-
-        allUtes[cpu] = {totaltime,idlealltime};
-        
+      if(std::regex_match(cpu,regEx)) {
+        utilization.push_back( {user,nice,system,idle,iowait,irq,softirq,steal,guest,guestnice});
       }
     }
     cpustream.close();
   }
 
-  return allUtes;
+  return utilization;
 }
 
+// unpacks the times vector, breaks out the ints and calculates the total and idle times.
+std::pair<long,long> getCpuTimes(std::vector<std::string> times) {
+  using namespace LinuxParser;
+    std::pair<long,long> consolidatedTimes;
+
+    long int idle = std::stoul(times[kIdle_]);  
+    long int ioWait = std::stoul(times[kIOwait_]);
+
+    long int user = std::stoul(times[kUser_]);
+    long int guest =std::stoul(times[kGuest_]);
+    long int nice = std::stoul(times[kNice_]);
+    long int guestNice = std::stoul(times[kGuestNice_]);
+    long int irq = std::stoul(times[kIRQ_]);
+    long int softIrq = std::stoul(times[kSoftIRQ_]);
+    long int system = std::stoul(times[kSystem_]);
+    long int steal = std::stoul(times[kSteal_]);
+
+    long int totalIdle = idle + ioWait;
+    long int totalRunning = user + guest + nice + guestNice + irq + softIrq + system + steal;
+    consolidatedTimes.first = totalIdle;
+    consolidatedTimes.second = totalRunning;
+
+ return consolidatedTimes;
+}
 
 // Get the processor information at time = 0.0s and time += 100ms. Use both times to calculate the 
 // CPU utilization for each processing core
 
 vector<string> LinuxParser::CpuUtilization() { 
-  std::map<std::string,std::vector<long>> initialTimes, laterTimes;
 
-  initialTimes = getAllUtilization();
-  // sleep for 200 milliseconds
+   //std::regex allCpuRegEx ("(cpu)(.*)");
+  //std::regex numberedCpuRegEx ("(cpu)(.+)"); 
+
+  // Only matches the top cpu in the file
+  std::regex topCpuRegEx ("(cpu)");
+  
+  std::vector<std::string> utilization;
+  std::vector<std::vector<std::string>> nCpus;
+  std::vector<std::string> topCpuTimeZero,topCpuTime100ms;
+  std::pair<long,long> previousTime, laterTime;
+  
+  // just get the top cpu line with this regEx
+  nCpus = getRawUtilization(topCpuRegEx);
+  topCpuTimeZero = nCpus.back();
+   // sleep for 100 milliseconds
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  laterTimes = getAllUtilization();
+  nCpus = getRawUtilization(topCpuRegEx);
+  topCpuTime100ms = nCpus.back();
 
-  std::vector<std::string> percentages;
-  std::vector<long> initVec,laterVec;
-  std::string thisCpu;
-  
-  std::map<std::string,std::vector<long>>::iterator it;
+  previousTime = getCpuTimes(topCpuTimeZero);
+  laterTime = getCpuTimes(topCpuTime100ms);
 
-  for(it = initialTimes.begin();it != initialTimes.end(); it++) {
-    
-    thisCpu = it->first;
-    initVec = it->second;
+  // get the consolidated times
+  long int laterIdleTime = laterTime.first;
+  long int laterRunningTime = laterTime.second;
 
-    laterVec = laterTimes[thisCpu];
-    long totald = laterVec[0] - initVec[0];
-    long idled = laterVec[1] - initVec[1];
+  long int prevIdleTime = previousTime.first;
+  long int prevRunningTime = previousTime.second;
 
-    std::string percent = std::to_string((totald - idled)/totald);
-    percentages.push_back(percent);
-  }
-	     // fake some data
-    percentages.at(0) = "0.54";
-    percentages.at(1) = "0.32";
-    percentages.at(2) = "0.64";
-    percentages.at(4) = "0.74";
-  
+  long int totalTime = laterIdleTime + laterRunningTime;
+  long int prevTotalTime = prevIdleTime + prevRunningTime;
+
+  long int deltaTime = totalTime - prevTotalTime;
+  long int deltaIdle = laterIdleTime - prevIdleTime;
+
+  std::string cpu = std::to_string((float) (deltaTime - deltaIdle)/deltaTime);
+  utilization.push_back(cpu);
  
-  return percentages;
+  return utilization;
   //return kernel;
 
  }
 
 
-/*  // Get the processor information at time = 0.0s and time += 100ms. Use both times to calculate the 
-// CPU utilization for each processing core
-
-vector<string> LinuxParser::CpuUtilization() { 
-  std::map<std::string,std::vector<long>> initialTimes, laterTimes;
-
-  std::regex e ("(cpu)(.*)");
-  std::ifstream stream(kProcDirectory + kStatFilename);
-  std::string cpu,user,nice,system,idle,iowait,irq,softirq,steal,guest,guestnice;
-  long usertime,nicetime,idlealltime,systemalltime,virtualltime,totaltime;
-
-  if (stream.is_open()) {
-    long prevIdle,prevNonIdle,prevTotalTime;
-    
-    while(stream >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guestnice) {
-      if(std::regex_match(cpu,e)) {
-        // Get the intial times and calcuate the total time
-        std::cout << "Line: " << cpu << std::endl;
-        usertime = stol(user) - stol(guest);
-        nicetime = stol(nice) - stol(guestnice);
-        idlealltime = stol(idle) + stol(iowait);
-        systemalltime = stol(system) + stol(irq) + stol(softirq);
-        virtualltime = stol(guest) + stol(guestnice);
-        totaltime = usertime + nicetime + systemalltime + idlealltime + stol(steal) + virtualltime;
-
-        initialTimes[cpu] = {totaltime,idlealltime};
-        
-      }
-    }
-    stream.close();
-    // sleep for 200 milliseconds
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
-  }
-  std::cout << " End of cpus" << std::endl;
-  std::vector<std::string> a;
-  return a;
-  //return kernel;
-
- } */
 // TODO: Read and return the system memory utilization
 float LinuxParser::MemoryUtilization() { 
   std::string line,line2,line3,memTotalTag,memTotal,memFreeTag,memFree, memAvailTag, memAvail;
