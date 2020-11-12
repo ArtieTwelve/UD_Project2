@@ -185,7 +185,7 @@ vector<string> LinuxParser::CpuUtilization() {
  } */
 // TODO: Read and return the system memory utilization
 float LinuxParser::MemoryUtilization() { 
-  std::string line,line2,memTotalTag,memTotal,memFreeTag,memFree;
+  std::string line,line2,line3,memTotalTag,memTotal,memFreeTag,memFree, memAvailTag, memAvail;
   float memPercent;
   std::ifstream memstream(LinuxParser::kProcDirectory + LinuxParser::kMeminfoFilename);
 
@@ -193,17 +193,35 @@ float LinuxParser::MemoryUtilization() {
     std::getline(memstream, line);
     std::istringstream linestream(line);
     linestream >> memTotalTag >> memTotal;
+
     std::getline(memstream, line2);
     std::istringstream linestream2(line2);
     linestream2 >> memFreeTag >> memFree; 
 
-    memPercent = (stof(memTotal) - stof(memFree))/stof(memTotal);
+    std::getline(memstream,line3);
+    std::istringstream linestream3(line3);
+    linestream3 >> memAvailTag >> memAvail; 
+    memPercent = (stof(memTotal) - stof(memAvail))/stof(memTotal);
   }
 return memPercent; 
 }
 
 // TODO: Read and return the system uptime
-long LinuxParser::UpTime() { return 0; }
+long LinuxParser::UpTime() { 
+  
+  string uptime, idletime;
+    string line;
+    std::ifstream stream(kProcDirectory + kUptimeFilename);
+    if (stream.is_open()) {
+      std::getline(stream, line);
+      std::istringstream linestream(line);
+      linestream >> uptime >> idletime;
+    }
+    return stol(uptime);
+  
+  }
+
+
 
 // TODO: Read and return the number of jiffies for the system
 long LinuxParser::Jiffies() { return 0; }
