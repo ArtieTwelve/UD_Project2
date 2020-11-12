@@ -47,6 +47,7 @@ RUN apt-get install -y --no-install-recommends sudo vim
 
 RUN apt-get autoremove
 
+RUN apt-get install stress
 
 RUN rm -rf /var/lib/apt/lists/*
 

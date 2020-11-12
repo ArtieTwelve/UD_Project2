@@ -114,10 +114,18 @@ std::string System::OperatingSystem() {
  }
 
 // TODO: Return the number of processes actively running on the system
-int System::RunningProcesses() { return 0; }
+// Top 1 of 3
+int System::RunningProcesses() { 
+   return LinuxParser::RunningProcesses();
+ }
 
 // TODO: Return the total number of processes on the system
-int System::TotalProcesses() { return 0; }
+// Top 2 of 3
+int System::TotalProcesses() { 
+  return  LinuxParser::TotalProcesses(); 
+}
 
 // TODO: Return the number of seconds since the system started running
+// Top 3 of 3
 long int System::UpTime() { return 0; }
+
