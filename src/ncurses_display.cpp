@@ -44,9 +44,9 @@ void NCursesDisplay::DisplaySystem(System& system, WINDOW* window) {
   wattroff(window, COLOR_PAIR(1));
   mvwprintw(window, ++row, 2,
             ("Total Processes: " + to_string(system.TotalProcesses())).c_str());
-  mvwprintw(
-      window, ++row, 2,
-      ("Running Processes: " + to_string(system.RunningProcesses())).c_str());
+  // Needed to right justify the running process string
+  mvwprintw(window, ++row, 2,"Running Processes: %3s",to_string(system.RunningProcesses()).c_str());
+ 
   mvwprintw(window, ++row, 2,
             ("Up Time: " + Format::ElapsedTime(system.UpTime())).c_str());
   wrefresh(window);
