@@ -6,6 +6,9 @@
 #include <string>
 
 namespace LinuxParser {
+// utilty methods
+void createUserMap();
+
 // Paths
 const std::string kProcDirectory{"/proc/"};
 const std::string kCmdlineFilename{"/cmdline"};
@@ -52,7 +55,7 @@ std::string Ram(int pid);
 std::string Uid(int pid);
 std::string User(int pid);
 long int UpTime(int pid);
-//std::map<std::string,std::vector<long>> getAllUtilization();
+
 };  // namespace LinuxParser
 
 #endif

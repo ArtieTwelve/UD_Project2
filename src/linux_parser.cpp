@@ -13,6 +13,10 @@ using std::string;
 using std::to_string;
 using std::vector;
 
+ using namespace LinuxParser;
+
+// declare the userMap
+std::map<std::string,std::string> userMap;
 
 // DONE: An example of how to read data from the filesystem
 string LinuxParser::OperatingSystem() {
@@ -95,7 +99,7 @@ std::vector<std::vector<std::string>> getRawUtilization(std::regex regEx) {
 
 // unpacks the times vector, breaks out the ints and calculates the total and idle times.
 std::pair<long,long> getCpuTimes(std::vector<std::string> times) {
-  using namespace LinuxParser;
+
     std::pair<long,long> consolidatedTimes;
 
     long int idle = std::stoul(times[kIdle_]);  
@@ -246,12 +250,16 @@ int LinuxParser::RunningProcesses() {
   if(std::regex_match(procCard,e)) {
           break;
     } else {
+       // ignore the rest of the line
        procstream.ignore(10000,'\n');
     }
   }   
    return std::stoi(procRunning); 
 
  }
+
+ // Get the user name from the process id
+string LinuxParser::Uid(int pid[[maybe_unused]]) { return string(); }
 
 // TODO: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
@@ -261,15 +269,39 @@ string LinuxParser::Command(int pid[[maybe_unused]]) { return string(); }
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Ram(int pid[[maybe_unused]]) { return string(); }
 
-// TODO: Read and return the user ID associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Uid(int pid[[maybe_unused]]) { return string(); }
 
-// TODO: Read and return the user associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::User(int pid[[maybe_unused]]) { return string(); }
+string LinuxParser::User(int pid) { 
+  if(userMap.empty())
+    createUserMap();
+  return userMap[std::to_string(pid)]; 
+}
 
 // TODO: Read and return the uptime of a process
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
+
+// utility methods
+// creates a user map. Key: UID, Value: Username
+void LinuxParser::createUserMap() {
+  
+  userMap.clear();
+
+  string line,ex,pid;
+  char delim = ':';
+  string token,name;
+  std::vector<std::string> tempVec;
+
+  std::ifstream filestream(LinuxParser::kPasswordPath);
+  if (filestream.is_open()) {
+    while (std::getline(filestream,line)) {
+      std::istringstream ss(line);
+      while (std::getline(ss,token,delim)) {
+          tempVec.push_back(token);
+        }
+        userMap[tempVec.at(2)] = tempVec.at(0);
+        tempVec.clear();
+      }
+    }
+
+}
 

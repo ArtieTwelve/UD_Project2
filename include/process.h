@@ -2,6 +2,9 @@
 #define PROCESS_H
 
 #include <string>
+#include <map>
+#include "linux_parser.h"
+
 /*
 Basic class for Process representation
 It contains relevant attributes as shown below
@@ -21,11 +24,11 @@ class Process {
   long int UpTime();                       // TODO: See src/process.cpp
   void setUpTime(long int uptime);
   bool operator<(Process const& a) const;  // TODO: See src/process.cpp
+
+    // Utility
+  Process getProcInfo(int pid);
+  std::string getUserName(std::string uid);
   
-
-  
-
-
   // TODO: Declare any necessary private members
  private:
   int pid;
