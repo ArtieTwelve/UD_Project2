@@ -35,41 +35,16 @@ vector<Process>& System::Processes() {
    return processes_; 
 }
 
-// get the user UID from /proc/<pid>/status
-std::string getUserId(int pid) {
-
-  std::string pidPath = LinuxParser::kProcDirectory+std::to_string(pid)+LinuxParser::kStatusFilename;
-  std::ifstream uidstream(pidPath);
-  //bool found = false;
-  std::regex e ("(Uid:)");
-  std::string toss,uid;
-  if (uidstream.is_open()) {
-    while(uidstream >> toss >> uid) {
-      if(std::regex_match(toss,e)) {
-        //found = true;
-        break;
-      }
-      else {
-        // ignore the rest of the line
-        uidstream.ignore(10000,'\n');
-      }
-    }   
-  }
-  /* if(found)
-    return uid;
-  else
-    return "X"; */
-  return uid;
-}
+// get the procces information this pid
 Process System::getProcInfo(int pid) {
   Process proc;
-  std::string user,userId;
   proc.setPid(pid);
-  userId = LinuxParser::User(pid);
-  userId = getUserId(pid);
-  if(userId != "") {
-    proc.setUser(user);
-  }
+  proc.User();
+  proc.CpuUtilization();
+  proc.Ram();
+  proc.UpTime();
+  proc.Command();
+
   return proc;
 }
 

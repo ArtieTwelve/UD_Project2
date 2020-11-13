@@ -5,7 +5,8 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-
+#include <sstream>
+#include <iomanip>
 #include "linux_parser.h"
 
 using std::stof;
@@ -125,7 +126,8 @@ std::pair<long,long> getCpuTimes(std::vector<std::string> times) {
 // Get the processor information at time = 0.0s and time += 100ms. Use both times to calculate the 
 // CPU utilization for each processing core
 
-vector<string> LinuxParser::CpuUtilization() { 
+vector<string> LinuxParser::CpuUtilization() { //XXXX Check - this should be for all cores, not the main one. 
+// Do not implement unless doing the bonus work. Move this to the Processor::Utilization() 
 
    //std::regex allCpuRegEx ("(cpu)(.*)");
   //std::regex numberedCpuRegEx ("(cpu)(.+)"); 
@@ -196,8 +198,7 @@ return memPercent;
 
 // TODO: Read and return the system uptime
 long LinuxParser::UpTime() { 
-  
-  string uptime, idletime;
+    string uptime, idletime;
     string line;
     std::ifstream stream(kProcDirectory + kUptimeFilename);
     if (stream.is_open()) {
@@ -205,9 +206,8 @@ long LinuxParser::UpTime() {
       std::istringstream linestream(line);
       linestream >> uptime >> idletime;
     }
-    return stol(uptime);
-  
-  }
+    return stol(uptime);  
+}
 
 
 
@@ -259,21 +259,67 @@ int LinuxParser::RunningProcesses() {
  }
 
  // Get the user name from the process id
-string LinuxParser::Uid(int pid[[maybe_unused]]) { return string(); }
+string LinuxParser::Uid(int pid) { 
+  std::string pidPath = LinuxParser::kProcDirectory+std::to_string(pid)+LinuxParser::kStatusFilename;
+  std::ifstream uidstream(pidPath);
+  std::regex e ("(Uid:)");
+  std::string toss,uid;
+  if (uidstream.is_open()) {
+    while(uidstream >> toss >> uid) {
+      if(std::regex_match(toss,e)) {
+        break;
+      }
+      else {
+        // ignore the rest of the line
+        uidstream.ignore(10000,'\n');
+      }
+    }   
+  }
+  return uid;
+ }
 
-// TODO: Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Command(int pid[[maybe_unused]]) { return string(); }
 
-// TODO: Read and return the memory used by a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::Ram(int pid[[maybe_unused]]) { return string(); }
+std::string LinuxParser::Command(int pid[[maybe_unused]]) { 
+    std::string command,line;
+    std::ifstream cmdstream(kProcDirectory+std::to_string(pid)+kCmdlineFilename);
+    if (cmdstream.is_open()) {
+      std::getline(cmdstream, line);
+      std::istringstream linestream(line);
+      linestream >> command;
+    }
+    return command;  
+ }
+
+
+string LinuxParser::Ram(int pid) {
+  std::string pidPath = kProcDirectory+std::to_string(pid)+kStatusFilename;
+  std::ifstream memstream(pidPath);
+  std::regex mem ("(VmSize:)");
+  std::string toss,vmem;
+  if (memstream.is_open()) {
+    while(memstream >> toss >> vmem) {
+      if(std::regex_match(toss,mem)) {
+        break;
+      }
+      else {
+        // ignore the rest of the line
+        memstream.ignore(10000,'\n');
+      }
+    }   
+  }
+  float fmem = stof(vmem);
+  fmem = fmem * 0.001;
+  std::stringstream ss;
+  ss << std::fixed << std::setprecision(2) << fmem; 
+  return ss.str();
+}
 
 
 string LinuxParser::User(int pid) { 
   if(userMap.empty())
     createUserMap();
-  return userMap[std::to_string(pid)]; 
+  std::string uid = LinuxParser::Uid(pid);
+  return userMap[uid]; 
 }
 
 // TODO: Read and return the uptime of a process
@@ -304,4 +350,5 @@ void LinuxParser::createUserMap() {
     }
 
 }
+
 

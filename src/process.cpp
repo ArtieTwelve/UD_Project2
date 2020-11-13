@@ -13,12 +13,10 @@ using std::vector;
 
 // Finished
 
-// get the user name associated with this process
-string Process::User() { return user; }
-void Process::setUser(std::string user) {
-    this->user = LinuxParser::User(pid);
-}
 
+string Process::User() { return LinuxParser::User(pid); }
+string Process::Ram() { return LinuxParser::Ram(pid); }
+string Process::Command() { return LinuxParser::Command(pid); }
 
 // TODO: Return this process's ID
 int Process::Pid() { return pid; }
@@ -30,12 +28,8 @@ void Process::setCpuUtilization(float util) {this->util = util;}
 
 
 // TODO: Return the command that generated this process
-string Process::Command() { return string(); }
-void Process::setCommand(std::string command) {this->command = command;}
 
-// TODO: Return this process's memory utilization
-string Process::Ram() { return string(); }
-void Process::setRam(std::string ram) {this->ram = ram;}
+void Process::setCommand(std::string command) {this->command = command;}
 
 
 
