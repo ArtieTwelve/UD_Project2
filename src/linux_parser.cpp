@@ -243,7 +243,8 @@ string LinuxParser::Ram(int pid) {
       }
     }   
   }
-  float fmem = stof(vmem);
+  float fmem;
+  fmem = stof(vmem);
   fmem = fmem * 0.001;
   std::stringstream ss;
   ss << std::fixed << std::setprecision(2) << fmem; 

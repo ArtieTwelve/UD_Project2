@@ -10,11 +10,13 @@
 #include "processor.h"
 #include "system.h"
 #include "linux_parser.h"
+#include <exception>
 
 using std::set;
 using std::size_t;
 using std::string;
 using std::vector;
+
 
 
 
@@ -25,11 +27,18 @@ Processor& System::Cpu() {
   return cpu_; }
 
 // Return a container composed of the system's processes
+// Try-Catch is used to discard short lived processes that throw exceptions when 
+// they are removed before the processing finishes
 vector<Process>& System::Processes() {
    std::vector<int> pids = LinuxParser::Pids();
-
+    processes_.clear();
     for(int pid: pids) { 
-     processes_.push_back(getProcInfo(pid));
+     try {
+        processes_.push_back(getProcInfo(pid));
+     } catch(std::exception& e) {
+       // exception is ingnored and process is not reported
+       //std::cout << "Caught pid: " << pid << std::endl;
+     }
     }
     // sort using the overloaded operator
     std::sort(processes_.begin(),processes_.end());
