@@ -31,6 +31,9 @@ vector<Process>& System::Processes() {
     for(int pid: pids) { 
      processes_.push_back(getProcInfo(pid));
     }
+    // sort using the overloaded operator
+    std::sort(processes_.begin(),processes_.end());
+    
    return processes_; 
 }
 

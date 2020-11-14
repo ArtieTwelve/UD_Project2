@@ -138,8 +138,9 @@ long LinuxParser::IdleJiffies() { return 0; }
 
 
 float LinuxParser::ProcessCpu(int pid) {
-/*   std::string line,toss,utime,stime,cutime,cstime;
-  long int totalTime; 
+  std::string line,toss,utime,stime,cutime,cstime;
+  long int thisProcessTime,systemTime,rawTime;
+  float cpuUsage; 
 
   std::ifstream filestream(kProcDirectory+to_string(pid)+kStatFilename);
   if (filestream.is_open()) {
@@ -149,11 +150,15 @@ float LinuxParser::ProcessCpu(int pid) {
         linestream >> toss;
       }
       linestream >> utime >> stime >> cutime >> cstime;
-      totalTime = std::stol(utime) + std::stol(stime) + std::stol(cutime) + std::stol(cstime);
+      thisProcessTime = std::stol(utime) + std::stol(stime) + std::stol(cutime) + std::stol(cstime);
     }
   }
- */
-return 0.0;
+ 
+ systemTime = LinuxParser::UpTime();
+ rawTime = thisProcessTime / sysconf(_SC_CLK_TCK);
+ cpuUsage = (float) rawTime / systemTime;
+
+return cpuUsage;
 }
 
 
@@ -259,15 +264,13 @@ long LinuxParser::UpTime(int pid) {
   std::string line,toss;
   long int uptime;
   std::ifstream upstream(kProcDirectory+to_string(pid)+kStatFilename);
-  
   if(upstream.is_open()) {
     while(std::getline(upstream,line)) {
       std::istringstream linestream(line);
       for(int i=1; i <= ProcessStates::kStartTime;i++) {
         linestream >> toss;
       }
-      //uptime = 12243697;
-      uptime = std::stol(toss) / sysconf(_SC_CLK_TCK);
+      uptime = LinuxParser::UpTime() - std::stol(toss) / sysconf(_SC_CLK_TCK);
     }
   }
 return uptime;
