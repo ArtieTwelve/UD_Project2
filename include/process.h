@@ -27,7 +27,6 @@ class Process {
 
     // Utility
   Process getProcInfo(int pid);
-  std::string getUserName(std::string uid);
   
   // TODO: Declare any necessary private members
  private:

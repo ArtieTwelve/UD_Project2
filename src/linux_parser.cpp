@@ -74,102 +74,13 @@ vector<int> LinuxParser::Pids() {
   closedir(directory);
   return pids;
 }
-// Convenience method to get the cpu utilization raw strings. If the regEx only matches ("cpu "), then only the values from the first cpu line of /proc/stat will be returned.
-// If it matches ("cpu)(.*) ") then the vector will hold all the values of cpu0 - cpuN. This way, it can be used for both the total system utilization and for each CPU.
-
-std::vector<std::vector<std::string>> getRawUtilization(std::regex regEx) {
-  //std::map<std::string,std::vector<long>> allUtes;
- // std::regex e ("(cpu)(.*)");
-  std::vector<std::vector<std::string>> utilization;
-  std::ifstream cpustream(LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
-  std::string cpu,user,nice,system,idle,iowait,irq,softirq,steal,guest,guestnice;
- 
-  if (cpustream.is_open()) {
-    //long prevIdle,prevNonIdle,prevTotalTime;
-    
-    while(cpustream >> cpu >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guestnice) {
-      if(std::regex_match(cpu,regEx)) {
-        utilization.push_back( {user,nice,system,idle,iowait,irq,softirq,steal,guest,guestnice});
-      }
-    }
-    cpustream.close();
-  }
-
-  return utilization;
-}
-
-// unpacks the times vector, breaks out the ints and calculates the total and idle times.
-std::pair<long,long> getCpuTimes(std::vector<std::string> times) {
-
-    std::pair<long,long> consolidatedTimes;
-
-    long int idle = std::stoul(times[kIdle_]);  
-    long int ioWait = std::stoul(times[kIOwait_]);
-
-    long int user = std::stoul(times[kUser_]);
-    long int guest =std::stoul(times[kGuest_]);
-    long int nice = std::stoul(times[kNice_]);
-    long int guestNice = std::stoul(times[kGuestNice_]);
-    long int irq = std::stoul(times[kIRQ_]);
-    long int softIrq = std::stoul(times[kSoftIRQ_]);
-    long int system = std::stoul(times[kSystem_]);
-    long int steal = std::stoul(times[kSteal_]);
-
-    long int totalIdle = idle + ioWait;
-    long int totalRunning = user + guest + nice + guestNice + irq + softIrq + system + steal;
-    consolidatedTimes.first = totalIdle;
-    consolidatedTimes.second = totalRunning;
-
- return consolidatedTimes;
-}
 
 // Get the processor information at time = 0.0s and time += 100ms. Use both times to calculate the 
 // CPU utilization for each processing core
 
-vector<string> LinuxParser::CpuUtilization() { //XXXX Check - this should be for all cores, not the main one. 
-// Do not implement unless doing the bonus work. Move this to the Processor::Utilization() 
-
-   //std::regex allCpuRegEx ("(cpu)(.*)");
-  //std::regex numberedCpuRegEx ("(cpu)(.+)"); 
-
-  // Only matches the top cpu in the file
-  std::regex topCpuRegEx ("(cpu)");
-  
-  std::vector<std::string> utilization;
-  std::vector<std::vector<std::string>> nCpus;
-  std::vector<std::string> topCpuTimeZero,topCpuTime100ms;
-  std::pair<long,long> previousTime, laterTime;
-  
-  // just get the top cpu line with this regEx
-  nCpus = getRawUtilization(topCpuRegEx);
-  topCpuTimeZero = nCpus.back();
-   // sleep for 100 milliseconds
-  std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  nCpus = getRawUtilization(topCpuRegEx);
-  topCpuTime100ms = nCpus.back();
-
-  previousTime = getCpuTimes(topCpuTimeZero);
-  laterTime = getCpuTimes(topCpuTime100ms);
-
-  // get the consolidated times
-  long int laterIdleTime = laterTime.first;
-  long int laterRunningTime = laterTime.second;
-
-  long int prevIdleTime = previousTime.first;
-  long int prevRunningTime = previousTime.second;
-
-  long int totalTime = laterIdleTime + laterRunningTime;
-  long int prevTotalTime = prevIdleTime + prevRunningTime;
-
-  long int deltaTime = totalTime - prevTotalTime;
-  long int deltaIdle = laterIdleTime - prevIdleTime;
-
-  std::string cpu = std::to_string((float) (deltaTime - deltaIdle)/deltaTime);
-  utilization.push_back(cpu);
- 
-  return utilization;
-  //return kernel;
-
+vector<string> LinuxParser::CpuUtilization() { 
+  std::vector<std::string> blank;
+  return blank;
  }
 
 
@@ -224,54 +135,60 @@ long LinuxParser::ActiveJiffies() { return 0; }
 // TODO: Read and return the number of idle jiffies for the system
 long LinuxParser::IdleJiffies() { return 0; }
 
+float ProcessCpu(int pid) {
+
+  float num = 0.0;
+  return num;
+}
 
 
 // TODO: Read and return the total number of processes
 int LinuxParser::TotalProcesses() { 
   std::ifstream procstream(LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
-  std::string procCard,procTotal;
+  std::string line,procCard,procTotal;
   std::regex e ("(processes)");
-  while(procstream >> procCard >> procTotal) {
-  if(std::regex_match(procCard,e)) {
-          break;
-    } else {
-       procstream.ignore(10000,'\n');
-    }
-  }   
-   return std::stoi(procTotal); 
+  if(procstream.is_open()) {
+    while(std::getline(procstream,line)) {
+      std::istringstream linestream(line);
+      linestream >> procCard >>  procTotal;
+      if(std::regex_match(procCard,e)) {
+            break;
+      }  
+    } 
   }
+   return std::stoi(procTotal); 
+}
+
 
 // TODO: Read and return the number of running processes
 int LinuxParser::RunningProcesses() { 
   std::ifstream procstream(LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
-  std::string procCard,procRunning = "0";
-  std::regex e ("(procs_running)");
-  while(procstream >> procCard >> procRunning) {
-  if(std::regex_match(procCard,e)) {
-          break;
-    } else {
-       // ignore the rest of the line
-       procstream.ignore(10000,'\n');
-    }
-  }   
-   return std::stoi(procRunning); 
-
+  std::string line,procCard,procRunning = "0";
+  std::regex regEx("(procs_running)");
+  if(procstream.is_open()) {
+    while(std::getline(procstream,line)) {
+      std::istringstream linestream(line);
+      linestream >> procCard >> procRunning;
+      if(std::regex_match(procCard,regEx)) {
+        break;
+      } 
+    }   
+  }
+  return std::stoi(procRunning); 
  }
 
  // Get the user name from the process id
 string LinuxParser::Uid(int pid) { 
   std::string pidPath = LinuxParser::kProcDirectory+std::to_string(pid)+LinuxParser::kStatusFilename;
   std::ifstream uidstream(pidPath);
-  std::regex e ("(Uid:)");
-  std::string toss,uid;
+  std::regex regEx ("(Uid:)");
+  std::string line,toss,uid;
   if (uidstream.is_open()) {
-    while(uidstream >> toss >> uid) {
-      if(std::regex_match(toss,e)) {
+    while(std::getline(uidstream,line)) {
+      std::istringstream linestream(line);
+      linestream >> toss >> uid;
+      if(std::regex_match(toss,regEx)) {
         break;
-      }
-      else {
-        // ignore the rest of the line
-        uidstream.ignore(10000,'\n');
       }
     }   
   }
@@ -295,15 +212,13 @@ string LinuxParser::Ram(int pid) {
   std::string pidPath = kProcDirectory+std::to_string(pid)+kStatusFilename;
   std::ifstream memstream(pidPath);
   std::regex mem ("(VmSize:)");
-  std::string toss,vmem;
+  std::string line,toss,vmem;
   if (memstream.is_open()) {
-    while(memstream >> toss >> vmem) {
+    while (std::getline(memstream, line)) {
+      std::istringstream linestream(line);
+      linestream >> toss >> vmem;
       if(std::regex_match(toss,mem)) {
         break;
-      }
-      else {
-        // ignore the rest of the line
-        memstream.ignore(10000,'\n');
       }
     }   
   }
@@ -316,6 +231,7 @@ string LinuxParser::Ram(int pid) {
 
 
 string LinuxParser::User(int pid) { 
+  // if the userMap is empty, fill it up
   if(userMap.empty())
     createUserMap();
   std::string uid = LinuxParser::Uid(pid);
