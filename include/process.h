@@ -14,15 +14,15 @@ class Process {
   int Pid();                               // TODO: See src/process.cpp
   void setPid(int);
   std::string User();                      // TODO: See src/process.cpp
-  void setUser(std::string user);
+  
   std::string Command();                   // TODO: See src/process.cpp
-  void setCommand(std::string command);
+  
   float CpuUtilization();                  // TODO: See src/process.cpp
-  void setCpuUtilization(float util);
+  
   std::string Ram();                       // TODO: See src/process.cpp
-  void setRam(std::string ram);
+  
   long int UpTime();                       // TODO: See src/process.cpp
-  void setUpTime(long int uptime);
+  
   bool operator<(Process const& a) const;  // TODO: See src/process.cpp
 
     // Utility

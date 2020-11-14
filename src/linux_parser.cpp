@@ -7,6 +7,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <unistd.h>
 #include "linux_parser.h"
 
 using std::stof;
@@ -107,7 +108,7 @@ float LinuxParser::MemoryUtilization() {
 return memPercent; 
 }
 
-// TODO: Read and return the system uptime
+// Read and return the system uptime
 long LinuxParser::UpTime() { 
     string uptime, idletime;
     string line;
@@ -135,11 +136,26 @@ long LinuxParser::ActiveJiffies() { return 0; }
 // TODO: Read and return the number of idle jiffies for the system
 long LinuxParser::IdleJiffies() { return 0; }
 
-float ProcessCpu(int pid) {
 
-  float num = 0.0;
-  return num;
+float LinuxParser::ProcessCpu(int pid) {
+/*   std::string line,toss,utime,stime,cutime,cstime;
+  long int totalTime; 
+
+  std::ifstream filestream(kProcDirectory+to_string(pid)+kStatFilename);
+  if (filestream.is_open()) {
+    while (std::getline(filestream, line)) {
+      std::istringstream linestream(line);
+      for (int i = 1; i < 14; i++) {
+        linestream >> toss;
+      }
+      linestream >> utime >> stime >> cutime >> cstime;
+      totalTime = std::stol(utime) + std::stol(stime) + std::stol(cutime) + std::stol(cstime);
+    }
+  }
+ */
+return 0.0;
 }
+
 
 
 // TODO: Read and return the total number of processes
@@ -238,9 +254,26 @@ string LinuxParser::User(int pid) {
   return userMap[uid]; 
 }
 
-// TODO: Read and return the uptime of a process
-// REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid[[maybe_unused]]) { return 0; }
+// Read and return the uptime of a process
+long LinuxParser::UpTime(int pid) {
+  std::string line,toss;
+  long int uptime;
+  std::ifstream upstream(kProcDirectory+to_string(pid)+kStatFilename);
+  
+  if(upstream.is_open()) {
+    while(std::getline(upstream,line)) {
+      std::istringstream linestream(line);
+      for(int i=1; i <= ProcessStates::kStartTime;i++) {
+        linestream >> toss;
+      }
+      //uptime = 12243697;
+      uptime = std::stol(toss) / sysconf(_SC_CLK_TCK);
+    }
+  }
+return uptime;
+}
+
+
 
 // utility methods
 // creates a user map. Key: UID, Value: Username

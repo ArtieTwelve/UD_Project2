@@ -27,15 +27,14 @@ void Process::setPid(int pid) {this->pid = pid;}
 // TODO: Return this process's CPU utilization
 float Process::CpuUtilization() { 
     util = LinuxParser::ProcessCpu(pid);
-    return util; 
-}
+    return util;
+ }
 
 
-
-
-
-// TODO: Return the age of this process (in seconds)
-long int Process::UpTime() { return 0; }
+// Return the age of this process (in seconds)
+long int Process::UpTime() { 
+    return LinuxParser::UpTime(pid);
+ }
 
 
 // Overload the "less than" comparison operator for Process objects
