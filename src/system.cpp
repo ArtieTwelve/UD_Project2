@@ -22,9 +22,8 @@ using std::vector;
 
 // Return the system's CPU
 Processor& System::Cpu() { 
-  Processor proc;
-  float cpuUtialization =  proc.Utilization();
-  return cpu_; }
+  return cpu_; 
+}
 
 // Return a container composed of the system's processes
 // Try-Catch is used to discard short lived processes that throw exceptions when 
