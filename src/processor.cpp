@@ -5,8 +5,11 @@
 
 // Return the aggregate CPU utilization
 // The collection of the cpu times and the calculation of the delta is broken up
-// into a couple of convenience methods in case I want to implement getting 
-// the CPU percentage for all the cores. 
+// into a couple of convenience methods. It seemed better to do the calculation 
+// here rather than in LinuxParser and using the "Jiffies" methods
+
+// In order to get a more realistic measure, the code grabs the values, waits
+// for 100ms and gets them again. 
 
 
 float Processor::Utilization() {

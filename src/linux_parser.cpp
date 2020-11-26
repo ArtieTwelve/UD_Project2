@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <unistd.h>
+#include <filesystem>
 #include "linux_parser.h"
 
 using std::stof;
@@ -16,6 +17,9 @@ using std::to_string;
 using std::vector;
 
  using namespace LinuxParser;
+
+ // Going for the Bonus Points
+ namespace fs =  std::filesystem;
 
 // declare the userMap
 std::map<std::string,std::string> userMap;
@@ -56,36 +60,25 @@ string LinuxParser::Kernel() {
   return kernel;
 }
 
-// BONUS: Update this to use std::filesystem
-vector<int> LinuxParser::Pids() {
-  vector<int> pids;
-  DIR* directory = opendir(kProcDirectory.c_str());
-  struct dirent* file;
-  while ((file = readdir(directory)) != nullptr) {
-    // Is this a directory?
-    if (file->d_type == DT_DIR) {
-      // Is every character of the name a digit?
-      string filename(file->d_name);
-      if (std::all_of(filename.begin(), filename.end(), isdigit)) {
-        int pid = stoi(filename);
-        pids.push_back(pid);
+// BONUS: This code was updated to use std::filesystem
+ vector<int> LinuxParser::Pids() {
+  std::vector<int> pids;
+  fs::path dirPath(kProcDirectory.c_str());
+
+  for(const auto & dir : fs::directory_iterator(dirPath)) {     
+      if(dir.is_directory()) {
+          std::string file = dir.path().filename();
+          if(std::all_of(file.begin(),file.end(),isdigit)) {   
+            int pid = stoi(file);
+            pids.push_back(pid);
+          }
       }
-    }
   }
-  closedir(directory);
-  return pids;
-}
-
-// Get the processor information at time = 0.0s and time += 100ms. Use both times to calculate the 
-// CPU utilization for each processing core
-
-vector<string> LinuxParser::CpuUtilization() { 
-  std::vector<std::string> blank;
-  return blank;
- }
+ return pids;
+} 
 
 
-// TODO: Read and return the system memory utilization
+// Done: Read and return the system memory utilization
 float LinuxParser::MemoryUtilization() { 
   std::string line,line2,line3,memTotalTag,memTotal,memFreeTag,memFree, memAvailTag, memAvail;
   float memPercent;
@@ -123,18 +116,13 @@ long LinuxParser::UpTime() {
 
 
 
-// TODO: Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() { return 0; }
+// I made the choice not to implement the jiffies methods
+// These calculations are better done in the Processor class
 
-// TODO: Read and return the number of active jiffies for a PID
-// REMOVE: [[maybe_unused]] once you define the function
+/* long LinuxParser::Jiffies() { return 0; }
 long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
-
-// TODO: Read and return the number of active jiffies for the system
 long LinuxParser::ActiveJiffies() { return 0; }
-
-// TODO: Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
+long LinuxParser::IdleJiffies() { return 0; } */
 
 
 float LinuxParser::ProcessCpu(int pid) {
@@ -163,7 +151,7 @@ return cpuUsage;
 
 
 
-// TODO: Read and return the total number of processes
+// Done: Read and return the total number of processes
 int LinuxParser::TotalProcesses() { 
   std::ifstream procstream(LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
   std::string line,procCard,procTotal;
@@ -181,7 +169,7 @@ int LinuxParser::TotalProcesses() {
 }
 
 
-// TODO: Read and return the number of running processes
+// Done: Read and return the number of running processes
 int LinuxParser::RunningProcesses() { 
   std::ifstream procstream(LinuxParser::kProcDirectory + LinuxParser::kStatFilename);
   std::string line,procCard,procRunning = "0";
@@ -216,7 +204,7 @@ string LinuxParser::Uid(int pid) {
   return uid;
  }
 
-
+// Done: get the command string
 std::string LinuxParser::Command(int pid[[maybe_unused]]) { 
     std::string command,line;
     std::ifstream cmdstream(kProcDirectory+std::to_string(pid)+kCmdlineFilename);
@@ -228,7 +216,7 @@ std::string LinuxParser::Command(int pid[[maybe_unused]]) {
     return command;  
  }
 
-
+// Done: get the ram for each process
 string LinuxParser::Ram(int pid) {
   std::string pidPath = kProcDirectory+std::to_string(pid)+kStatusFilename;
   std::ifstream memstream(pidPath);
@@ -251,7 +239,7 @@ string LinuxParser::Ram(int pid) {
   return ss.str();
 }
 
-
+// Done: Get the username via a userMap
 string LinuxParser::User(int pid) { 
   // if the userMap is empty, fill it up
   if(userMap.empty())
@@ -260,7 +248,7 @@ string LinuxParser::User(int pid) {
   return userMap[uid]; 
 }
 
-// Read and return the uptime of a process
+// Done: Read and return the uptime of a process
 long LinuxParser::UpTime(int pid) {
   std::string line,toss;
   long int uptime;
